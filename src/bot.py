@@ -17,8 +17,11 @@ class HomeBot:
         self.data = pd.DataFrame([], columns=list(self.devices.keys()))
 
     def scan(self):
-        answered_list = subprocess.check_output("sudo arp-scan -lx --retry=6", shell=True, stderr=subprocess.STDOUT).decode('utf-8')
         result = []
+        try:
+            answered_list = subprocess.check_output("sudo arp-scan -lx --retry=6", shell=True, stderr=subprocess.STDOUT).decode('utf-8')
+        except:
+            return result
         for answer in answered_list.split('\n'):
             try:
                 mac = answer.split('\t')[1]
@@ -43,7 +46,14 @@ class HomeBot:
             self.data = self.data[-1000:]
             print(f'{now}: {result}')
 
-    def get_whos_home(self, minutes):
+    def get_whos_home(self, seconds):
         now = pd.Timestamp.now(tz='NZ')
-        home_in_period = self.data[self.data.index > (now - pd.Timedelta(minutes=minutes))].sum()
-        return list(home_in_period[home_in_period > 0].index)
+        home_in_period = self.data[self.data.index > (now - pd.Timedelta(seconds=seconds))].sum()
+        return home_in_period.to_dict()
+
+    def get_timeseries(self, name, seconds):
+        now = pd.Timestamp.now(tz='NZ')
+        timeseries = self.data.loc[self.data.index > (now - pd.Timedelta(seconds=seconds)), name].to_dict()
+        timeseries = {str(key): value for key, value in timeseries.items()}
+        print(timeseries)
+        return timeseries
