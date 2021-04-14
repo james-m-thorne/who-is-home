@@ -3,7 +3,7 @@ import pandas as pd
 
 
 # Subclass fbchat.Client and override required methods
-class HomeBot:
+class HomeScanner:
 
     def __init__(self):
         self.ip = '192.168.1.1/24'
@@ -55,5 +55,4 @@ class HomeBot:
         now = pd.Timestamp.now(tz='NZ')
         timeseries = self.data.loc[self.data.index > (now - pd.Timedelta(seconds=seconds)), name].to_dict()
         timeseries = {str(key): value for key, value in timeseries.items()}
-        print(timeseries)
         return timeseries
