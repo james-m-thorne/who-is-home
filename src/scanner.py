@@ -1,8 +1,7 @@
 import subprocess
-import pandas as pd
+from datetime import datetime, timedelta
 
 
-# Subclass fbchat.Client and override required methods
 class HomeScanner:
 
     def __init__(self):
@@ -14,7 +13,7 @@ class HomeScanner:
             'Ayesha': '32:24:99:93:d4:cb',
             'Dinul': '22:22:70:87:50:ea',
         }
-        self.data = pd.DataFrame([], columns=list(self.devices.keys()))
+        self.data = []
 
     def scan(self):
         result = []
@@ -33,7 +32,7 @@ class HomeScanner:
 
     def collect_whos_home(self):
         while True:
-            now = pd.Timestamp.now(tz='NZ')
+            now = datetime.now()
             scanned_mac = self.scan()
             result = {}
             for person, mac in self.devices.items():
@@ -42,17 +41,19 @@ class HomeScanner:
                 else:
                     result[person] = 0
 
-            self.data = pd.concat([self.data, pd.DataFrame(result, index=[now])])
+            self.data.append({'time': now, 'result': result})
             self.data = self.data[-1000:]
             print(f'{now}: {result}')
 
     def get_whos_home(self, seconds):
-        now = pd.Timestamp.now(tz='NZ')
-        home_in_period = self.data[self.data.index > (now - pd.Timedelta(seconds=seconds))].sum()
-        return home_in_period.to_dict()
+        min_time = datetime.now() - timedelta(seconds=seconds)
+        home_in_period = [point['result'] for point in self.data if point['time'] > min_time]
+        result = {}
+        for person in self.devices:
+            result[person] = sum(item.get(person, 0) for item in home_in_period)
+        return result
 
     def get_timeseries(self, name, seconds):
-        now = pd.Timestamp.now(tz='NZ')
-        timeseries = self.data.loc[self.data.index > (now - pd.Timedelta(seconds=seconds)), name].to_dict()
-        timeseries = {str(key): value for key, value in timeseries.items()}
+        min_time = datetime.now() - timedelta(seconds=seconds)
+        timeseries = {str(point['time']): point.get('result', {}).get(name) for point in self.data if point['time'] > min_time}
         return timeseries
